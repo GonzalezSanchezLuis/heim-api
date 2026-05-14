@@ -1,0 +1,51 @@
+package com.heim.api.notification.application.service;
+
+import com.heim.api.notification.application.service.email.EmailSender;
+import com.heim.api.notification.application.service.email.templates.AccountStatusTemplate;
+import com.heim.api.notification.application.service.email.templates.AuthEmailTemplate;
+import com.heim.api.notification.application.service.email.templates.WelcomeEmailTemplate;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class EmailNotificationService {
+    private final EmailSender emailSender;
+    private final String BRAND_COLOR = "#4F46E5";
+    @Value("${app.email.from.auth}")
+    private String fromAuth;
+
+    @Value("${app.url.frontend}")
+    private String frontend;
+
+    @Value("${app.email.from.onboarding}")
+    private String fromOnboarding;
+
+    @Value("${app.email.from.status}")
+    private String fromStatus;
+
+    @Async
+    public void sendPasswordResetNotification(String email, String name, String token) {
+      //  String emailDePrueba = "test-ttttan59i@srv1.mail-tester.com";
+        String html = AuthEmailTemplate.buildPasswordReset(name, token);
+        emailSender.send(email, "Vamos a ayudarte a volver a entrar", html, fromAuth);
+    }
+
+    @Async
+    public void sendWelcomeEmail(String toEmail, String name) {
+        String html = WelcomeEmailTemplate.build(name, frontend, BRAND_COLOR);
+        emailSender.send(toEmail, "¡Bienvenido a Heim!", html,fromOnboarding);
+    }
+
+    @Async
+    public void sendAccountStatusEmail(String toEmail, String firstName, boolean isActive){
+        String htmlContent = AccountStatusTemplate.build(firstName, isActive);
+        String subject = isActive ? "¡Tu cuenta en Heim está activa!" : "Tu cuenta en Heim ha sido pausada";
+        emailSender.send(toEmail, subject, htmlContent,fromStatus);
+
+    }
+
+
+}

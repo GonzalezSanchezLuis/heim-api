@@ -1,0 +1,132 @@
+package com.heim.api.move.infraestructure.controller;
+
+import com.heim.api.move.application.dto.*;
+import com.heim.api.move.application.service.RestoreMoveService;
+import com.heim.api.move.application.service.MoveService;
+import com.heim.api.move.domain.entity.Move;
+import com.heim.api.move.domain.enums.MoveStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/move/")
+@CrossOrigin("*")
+public class MoveController {
+
+    private final MoveService moveService;
+    private final RestoreMoveService restoreMoveService;
+
+
+    @Autowired
+    public MoveController(
+            MoveService moveService,
+            RestoreMoveService restoreMoveService) {
+        this.moveService = moveService;
+        this.restoreMoveService = restoreMoveService;
+    }
+
+    @PostMapping("confirm")
+    public ResponseEntity<MoveConfirmationResponse> findNearbyDrivers(@RequestBody MoveRequest moveRequest) {
+        MoveConfirmationResponse response = moveService.confirmMove(moveRequest);
+        return ResponseEntity.ok(response);
+    }
+
+   /* @PostMapping("create")
+    public ResponseEntity<Move> createMove(@RequestBody MoveRequest moveRequest) {
+        Move move = moveService.createMove(moveRequest);
+        return ResponseEntity.ok(move);
+    }*/
+
+
+    @PutMapping("{moveId}/accept")
+    public ResponseEntity<MoveDTO> assignDriver(@PathVariable Long moveId, @RequestBody AcceptMoveRequest acceptMoveRequest) {
+        acceptMoveRequest.setMoveId(moveId);
+        MoveDTO moveDTO = moveService.assignDriverToMove(acceptMoveRequest);
+        return moveDTO != null ? ResponseEntity.ok(moveDTO) : ResponseEntity.notFound().build();
+    }
+
+    @PatchMapping("driver-arrived")
+    public ResponseEntity<String> updateMoveStatus(@RequestBody MovingStatusesDTO movingStatusesDTO) {
+        if (movingStatusesDTO.getMoveId() == null || movingStatusesDTO.getDriverId() == null) {
+            return ResponseEntity.badRequest().body("Faltan datos obligatorios");
+        }
+
+
+        System.out.println("📥 Datos recibidos: " + movingStatusesDTO);
+        Long moveId = movingStatusesDTO.getMoveId();  // <-- AQUÍ llega null
+        Long driverId = movingStatusesDTO.getDriverId();
+
+        // Verificación manual
+        if (moveId == null || driverId == null) {
+            return ResponseEntity.badRequest().body("❌ moveId o driverId es null");
+        }
+        moveService.markDriverArrived(movingStatusesDTO);
+        return ResponseEntity.ok("Estado actualizado a DRIVER_ARRIVED");
+    }
+
+    @PatchMapping("start")
+    public ResponseEntity<String> starMove(@RequestBody MovingStatusesDTO movingStatusesDTO) {
+        moveService.startMove(movingStatusesDTO);
+        return ResponseEntity.ok("Mudanza iniciada");
+    }
+
+
+    @PatchMapping("complete")
+    public ResponseEntity<Move> completeTrip(@RequestBody MovingStatusesDTO movingStatusesDTO) {
+        Move move = moveService.completeMove(movingStatusesDTO);
+        return move != null ? ResponseEntity.ok(move) : ResponseEntity.notFound().build();
+    }
+
+
+    @GetMapping("get-status/{moveId}")
+    public MoveStatus getMOveStatus(@PathVariable Long moveId) {
+        return moveService.getMoveStatus(moveId);
+    }
+
+    @GetMapping("driver/{id}/history")
+    public ResponseEntity<List<MovingHistoryDTO>> getMovingHistoryByDriverId(@PathVariable Long id) {
+        List<MovingHistoryDTO> history = moveService.getMovingHistoryByDriverId(id);
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("user/{id}/history")
+    public ResponseEntity<List<MovingHistoryDTO>> getMovingHistoryByUserId(@PathVariable Long id) {
+        List<MovingHistoryDTO> history = moveService.getMovingHistoryByUserId(id);
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("{moveId}/summary")
+    public MoveSummaryDTO movingSummary(@PathVariable Long moveId) {
+        return moveService.movingSummary(moveId);
+    }
+
+
+
+    @GetMapping("{moveId}/details")
+    public ResponseEntity<MoveDetailsDTO> getMoveDetails(@PathVariable Long moveId) {
+        MoveDetailsDTO details = moveService.findMoveDetails(moveId);
+        return ResponseEntity.ok(details);
+    }
+
+    @GetMapping("{moveId}/restore-move")
+    public ResponseEntity<RestoreMoveResponseDTO> getActiveMove(
+            @PathVariable Long moveId,
+            @RequestBody RestoreMoveRequestDTO activeMoveRequestDTO
+    ) {
+        try {
+            Long driverId = activeMoveRequestDTO.getDriverId();
+            return restoreMoveService.getActiveMoveForDriver(driverId, moveId)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.noContent().build());
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+}
+
