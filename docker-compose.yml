@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Base de Datos PostgreSQL
+  heim-db:
+    image: postgres:15-alpine
+    container_name: heim-db
+    environment:
+      POSTGRES_DB: heim
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres} # Usa 'postgres' si no hay variable
+    ports:
+      - "5432:5432"
+    volumes:
+      - heim-db-data:/var/lib/postgresql/data
+
+  # Tu API de Spring Boot
+  heim-api:
+    build: .
+    container_name: heim-api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - heim-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://heim-db:5432/heim
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-postgres}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - FIREBASE_ADMIN_CREDENTIALS=${FIREBASE_ADMIN_CREDENTIALS}
+
+volumes:
+  heim-db-data:
