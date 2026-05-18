@@ -5,10 +5,8 @@ import com.heim.api.auth.infraestructure.repository.PasswordResetRepository;
 import com.heim.api.notification.application.service.EmailNotificationService;
 import com.heim.api.users.domain.entity.User;
 import com.heim.api.users.infraestructure.repository.UserRepository;
-import com.resend.Resend;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -20,19 +18,19 @@ public class PasswordResetService {
     private final PasswordResetRepository passwordResetRepository;
     private final UserRepository userRepository;
     private final EmailNotificationService emailNotificationService;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public PasswordResetService(
             PasswordResetRepository passwordResetRepository,
             UserRepository userRepository,
-            EmailNotificationService emailNotificationService
-
+            EmailNotificationService emailNotificationService,
+            PasswordEncoder passwordEncoder
     ){
         this.passwordResetRepository = passwordResetRepository;
         this.userRepository = userRepository;
         this.emailNotificationService = emailNotificationService;
-        this.passwordEncoder = new BCryptPasswordEncoder();
+        this.passwordEncoder = passwordEncoder;
     }
 
 
@@ -62,24 +60,20 @@ public class PasswordResetService {
         }
     }
 
-    public boolean validateToken(String token){
-        return passwordResetRepository.findByToken(token).map(passwordReset -> passwordReset.getExpirationTime().isAfter(LocalDateTime.now())).orElse(false);
-    }
-
     public void resetPassword(String token, String newPassword) {
         PasswordReset resetRequest = passwordResetRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Token inválido o no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Token inválido o no encontrado"));
 
-        if (resetRequest.getExpirationTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("El token ha expirado");
+        if (resetRequest.isUsed() || resetRequest.getExpirationTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("El token ha expirado o ya fue utilizado");
         }
+
         User user = resetRequest.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
+        resetRequest.setUsed(true);
 
         userRepository.save(user);
         passwordResetRepository.delete(resetRequest);
-
-        System.out.println("Contraseña actualizada para: " + user.getEmail());
     }
 
     }

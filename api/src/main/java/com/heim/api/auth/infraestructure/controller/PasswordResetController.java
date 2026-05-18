@@ -46,13 +46,12 @@ public class PasswordResetController {
     @PostMapping("reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         Map<String, String> response = new HashMap<>();
-
-        if (passwordResetService.validateToken(request.getToken())) {
+        try {
             passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
             response.put("message", "Contraseña actualizada con éxito.");
-            return  ResponseEntity.ok(response);
-        } else {
-            response.put("message", "El enlace es invalido o ha expirado.");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
