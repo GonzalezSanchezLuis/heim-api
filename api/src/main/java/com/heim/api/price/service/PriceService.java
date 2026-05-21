@@ -71,8 +71,7 @@ public class PriceService {
 
 
             MoveType moveType = priceRequest.getTypeOfMove();
-            String accessType = priceRequest.getAccessType();
-            double calculatedPrice = calculatePriceByMoveType(moveType, distanceKm, timeMin, accessType);
+            double calculatedPrice = calculatePriceByMoveType(moveType, distanceKm, timeMin);
             BigDecimal rawPrice = BigDecimal.valueOf(calculatedPrice);
             BigDecimal roundedPrice = rawPrice.divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
 
@@ -116,7 +115,7 @@ public class PriceService {
             }
 
             System.out.println("PRECIO DE LA MUDANZA" + roundedPrice);
-            return new PriceResponse(roundedPrice, distanceKm, timeMin, route, accessType);
+            return new PriceResponse(roundedPrice, distanceKm, timeMin, route);
 
         } catch (Exception e) {
             System.out.println("Error al calcular el precio: " + e.getMessage());
@@ -125,36 +124,34 @@ public class PriceService {
         }
     }
 
-    private double calculatePriceByMoveType(MoveType moveType, double distanceKm, double timeMin, String accessType) {
+    private double calculatePriceByMoveType(MoveType moveType, double distanceKm, double timeMin) {
         double rateBase;
         double costByKm;
         double costByMin;
 
         switch (moveType) {
-            case PEQUENA:
-                rateBase = 120000;
-                costByKm = 1000;
-                costByMin = 500;
+            case XPRESS:
+                rateBase = 25000;
+                costByKm = 1800;
+                costByMin = 300;
                 break;
             case MEDIANA:
-                rateBase = 200000;
-                costByKm = 1500;
-                costByMin = 1000;
+                rateBase = 50000;
+                costByKm = 3200;
+                costByMin = 500;
+                break;
+            case GRANDE:
+                rateBase = 90000;
+                costByKm = 4000;
+                costByMin = 800;
                 break;
             default:
-                throw new IllegalArgumentException("Tipo de mudanza no válido: " + moveType);
+                throw new IllegalArgumentException("Tipo de carga no válido: " + moveType);
         }
 
         double subtotal = rateBase + (costByKm * distanceKm) + (costByMin * timeMin);
 
-        if ("ESCALERAS".equalsIgnoreCase(accessType)) {
-            subtotal += 30000;
-        } else if ("ASCENSOR".equalsIgnoreCase(accessType)) {
-            subtotal += 5000;
-        } else if ("CALLE".equalsIgnoreCase(accessType)) {
-            log.info("NUEVOS DATOS DE LA MUDANZA {}", subtotal);
-            subtotal +=0;
-        }
+        log.info("Cálculo de tarifa logística completado para {}: {}", moveType, subtotal);
 
         return subtotal;
     }

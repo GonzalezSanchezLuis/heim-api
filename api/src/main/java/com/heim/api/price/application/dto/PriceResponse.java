@@ -1,8 +1,6 @@
 package com.heim.api.price.application.dto;
 
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -16,9 +14,8 @@ public class PriceResponse {
     private final String formattedDistance;
     private final String formattedDuration;
     private final List<Map<String, Double>> route;
-    private final String accessType;
 
-    public PriceResponse(BigDecimal price,double distanceKm, double timeMin, List<Map<String, Double>> route, String accessType) {
+    public PriceResponse(BigDecimal price,double distanceKm, double timeMin, List<Map<String, Double>> route) {
         this.price = price;
         NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("es", "CO"));
         nf.setMinimumFractionDigits(0);
@@ -29,7 +26,6 @@ public class PriceResponse {
         this.formattedDistance = String.format("%.1f km", distanceKm);
         this.formattedDuration = String.format("%.0f min", timeMin);
         this.route = route;
-        this.accessType = accessType;
 
     }
 
@@ -60,8 +56,5 @@ public class PriceResponse {
     public List<Map<String, Double>> getRoute() {
         return route;
     }
-    public String getAccessType() {
-            return accessType;
-        }
 }
 

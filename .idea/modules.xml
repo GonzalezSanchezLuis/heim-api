@@ -3,7 +3,15 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Api-Holi.iml" filepath="$PROJECT_DIR$/.idea/Api-Holi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/driver/api.driver.iml" filepath="$PROJECT_DIR$/.idea/modules/driver/api.driver.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/fcm/api.fcm.iml" filepath="$PROJECT_DIR$/.idea/modules/fcm/api.fcm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/hazelcast/api.hazelcast.iml" filepath="$PROJECT_DIR$/.idea/modules/hazelcast/api.hazelcast.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/api.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/move/api.move.iml" filepath="$PROJECT_DIR$/.idea/modules/move/api.move.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/notification/api.notification.iml" filepath="$PROJECT_DIR$/.idea/modules/notification/api.notification.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/price/api.price.iml" filepath="$PROJECT_DIR$/.idea/modules/price/api.price.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user/api.user.iml" filepath="$PROJECT_DIR$/.idea/modules/user/api.user.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/uth/api.uth.iml" filepath="$PROJECT_DIR$/.idea/modules/uth/api.uth.iml" />
     </modules>
   </component>
 </project>

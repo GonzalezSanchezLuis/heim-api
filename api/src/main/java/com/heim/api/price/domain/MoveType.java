@@ -1,6 +1,7 @@
 package com.heim.api.price.domain;
 
 public enum MoveType {
-    PEQUENA,
+    XPRESS,
     MEDIANA,
+    GRANDE
 }

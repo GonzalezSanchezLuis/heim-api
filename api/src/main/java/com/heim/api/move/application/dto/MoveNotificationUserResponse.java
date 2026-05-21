@@ -16,6 +16,8 @@ public class MoveNotificationUserResponse {
     private String enrollVehicle;
     private String vehicleType;
     private String driverImageUrl;
+    private String accountNumber;
+    private String amount;
     private Long moveId;
     private String origin;
     private String destination;

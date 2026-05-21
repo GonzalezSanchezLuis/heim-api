@@ -15,5 +15,4 @@ public class PriceRequest {
     private BigDecimal destinationLat;
     private BigDecimal destinationLng;
     private Long userId;
-    private String accessType;
 }

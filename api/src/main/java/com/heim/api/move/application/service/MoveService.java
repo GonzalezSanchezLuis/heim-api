@@ -22,6 +22,7 @@ import com.heim.api.payment.application.service.PaymentService;
 import com.heim.api.payment.domain.Earning;
 import com.heim.api.payment.domain.enums.PaymentMethod;
 import com.heim.api.payment.domain.enums.PaymentStatus;
+import com.heim.api.payment.infraestructure.repository.DriverPaymentAccountRepository;
 import com.heim.api.payment.infraestructure.repository.EarningRepository;
 import com.heim.api.payment.infraestructure.repository.PaymentRepository;
 import com.heim.api.users.application.dto.UserPaymentRequest;
@@ -71,6 +72,7 @@ public class MoveService {
     private final EarningRepository earningRepository;
     private final EarningService earningService;
     private final PaymentRepository paymentRepository;
+    private final DriverPaymentAccountRepository driverPaymentAccountRepository;
 
 
 
@@ -90,7 +92,8 @@ public class MoveService {
                        MovingHistoryMapper movingHistoryMapper,
                        EarningRepository earningRepository,
                        EarningService earningService,
-                       PaymentRepository paymentRepository
+                       PaymentRepository paymentRepository,
+                       DriverPaymentAccountRepository driverPaymentAccountRepository
                        ) {
 
         this.moveRepository = moveRepository;
@@ -108,10 +111,9 @@ public class MoveService {
         this.earningRepository =  earningRepository;
         this.earningService = earningService;
         this.paymentRepository = paymentRepository;
+        this.driverPaymentAccountRepository = driverPaymentAccountRepository;
 
     }
-
-    //private static final int MAX_NOTIFICATION_ATTEMPTS = 3;
 
     private static final String[] NOTIFICATION_MESSAGES = {
             "¡Nuevo viaje disponible cerca de ti!",
@@ -202,7 +204,6 @@ public class MoveService {
         move.setDurationMin(moveRequest.getEstimatedTime());
         move.setRequestTime(LocalDateTime.now());
         move.setStatus(MoveStatus.REQUESTED);
-        move.setAccessType(moveRequest.getAccessType());
         log.info("MUDANZA QUE SE CONFIRMA DEL CLIENTE {}", move);
         move = moveRepository.save(move);
         return move;
@@ -262,8 +263,8 @@ public class MoveService {
 
         move.setStartTime(movingStatusesDTO.getTimestamp() != null ? movingStatusesDTO.getTimestamp() : LocalDateTime.now());
 
-        notificationService.notifyUser(FcmToken.OwnerType.USER, move.getUser().getUserId(), "\uD83D\uDE9A La mudanza está en marcha",
-                "Todo va según lo planeado. Tu nueva etapa está cada vez más cerca.");
+        notificationService.notifyUser(FcmToken.OwnerType.USER, move.getUser().getUserId(), "\uD83D\uDE9A Heim: Despacho en camino",
+                "Tu carga ya fue recogida. Sigue el camión en vivo hasta el punto de entrega.");
         moveRepository.save(move);
 
     }
@@ -298,12 +299,12 @@ public class MoveService {
             PaymentResponse paymentResponse = getPaymentResponse(move, wavaPaymentUrl);
             moveRepository.save(move);
 
-            notificationService.notifyUser(FcmToken.OwnerType.USER, move.getUser().getUserId(), "\uD83C\uDFE1 ¡Tu mudanza fue completada con éxito!",
-                    "¡Gracias por confiar en nosotros para este gran paso! Te deseamos lo mejor en tu nuevo hogar. \uD83E\uDDE1");
+            notificationService.notifyUser(FcmToken.OwnerType.USER, move.getUser().getUserId(), "\uD83D\uDCE6 ¡Entrega completada con éxito!",
+                    "Tu mercancía ha sido entregada. Gracias por confiar tu logística en Heim. ¡Hasta el próximo despacho! \uD83D\uDE9A");
 
             MoveFinishedEvent event = new MoveFinishedEvent(move.getMoveId(), paymentResponse);
             applicationEventPublisher.publishEvent(event);
-            logger.info("ENVIANDO DATOS DE PAGO MEDIANTE WEBSOCKET {}", event);
+         //   logger.info("ENVIANDO DATOS DE PAGO MEDIANTE WEBSOCKET {}", event);
 
             return move;
         }
@@ -346,7 +347,7 @@ public class MoveService {
        notificationService.notify(
                FcmToken.OwnerType.USER,
                move.getUser().getUserId(),
-               "\uD83D\uDE9B ¡Tu mudanza ya tiene conductor!", "Tranquilo, ya estamos en camino para ayudarte a empezar esta nueva etapa.",
+               "\uD83D\uDE9A ¡Conductor asignado a tu despacho!", "El vehículo está en camino al punto de recogida. Ten tu carga lista para agilizar el proceso. \uD83D\uDCE6",
                data,
                message
                );
@@ -409,8 +410,8 @@ public class MoveService {
                 notificationService.notify(
                         FcmToken.OwnerType.DRIVER,
                         userId,
-                        "\uD83D\uDEA8 ¡Una nueva mudanza necesita de ti!",
-                        "Tu ayuda puede marcar la diferencia para alguien que se muda hoy.",
+                        "\uD83D\uDEA8 ¡Nueva oferta de carga disponible!",
+                        "Hay un servicio cerca de tu ubicación. Revisa los detalles y acepta el flete ahora. \uD83D\uDE9A",
                         moveData,
                         message);
                 DriverLocation driverLocation = driverLocationMap.get(driverId);
@@ -487,7 +488,6 @@ public class MoveService {
         moveData.put("originLng", String.valueOf(move.getOriginLng()));
         moveData.put("destinationLat", String.valueOf(move.getDestinationLat()));
         moveData.put("destinationLng", String.valueOf(move.getDestinationLng()));
-        moveData.put("accessType", String.valueOf(move.getAccessType()));
         moveData.put("role", "DRIVER");
 
         //DATOS DEL USUARIO
@@ -503,7 +503,7 @@ public class MoveService {
         Map<String, String> data = new HashMap<>();
         data.put("moveId", move.getMoveId().toString());
         data.put("status", move.getStatus().toString());
-
+        data.put("amount", move.getPrice().toString());
 
         if (move.getDriver() != null) {
             Driver driver = move.getDriver();
@@ -511,11 +511,14 @@ public class MoveService {
 
             data.put("driverLat", String.valueOf(driverLocation.getLatitude()));
             data.put("driverLng", String.valueOf(driverLocation.getLongitude()));
-
             data.put("driverName", user.getFullName());
             data.put("driverPhone", user.getPhone() != null ? user.getPhone() : "");
             data.put("driverImageUrl", user.getUrlAvatarProfile() != null ? user.getUrlAvatarProfile() : "");
 
+
+            driverPaymentAccountRepository.findByDriverId(driver.getId()).ifPresent(account ->
+                    data.put("accountNumber", account.getAccountNumber())
+            );
         }
 
         return data;
