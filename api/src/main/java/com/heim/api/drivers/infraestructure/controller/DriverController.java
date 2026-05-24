@@ -104,17 +104,16 @@ public class DriverController {
     }
 
     @PutMapping("{driverId}/connect")
-    public ResponseEntity<Map<String, String>> updateStatus(@PathVariable Long driverId,
+    public ResponseEntity<DriverStatusResponse> updateStatus(@PathVariable Long driverId,
                                                              @RequestBody DriverStatusRequest request) {
-        driverService.connectDriver(driverId, request);
-        logger.info("🔄 Estado actualizado para el conductor {}", driverId);
-        return ResponseEntity.ok(buildResponse(SUCCESS, STATUS_UPDATED));
+        DriverStatusResponse response = driverService.connectDriver(driverId, request);
+        logger.info("🔄 Estado actualizado para el conductor {}, driverId real: {}", driverId, response.getId());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("{driverId}/location")
-    public ResponseEntity<Map<String, String>> updateDriverLocation(@RequestBody DriverUpdateLocationRequest request,@PathVariable Long driverId) {
+    public ResponseEntity<Map<String, String>> updateDriverLocation(@RequestBody DriverUpdateLocationRequest request, @PathVariable Long driverId) {
         driverService.updateDriverLocation(request, driverId);
-        logger.info("📍 Ubicación actualizada para el conductor {}", driverId);
         return ResponseEntity.ok(buildResponse(SUCCESS, "Ubicación actualizada correctamente"));
     }
 

@@ -117,7 +117,7 @@ public class DriverService {
 
 
 
-    public void connectDriver(Long userId, DriverStatusRequest request) {
+    public DriverStatusResponse connectDriver(Long userId, DriverStatusRequest request) {
         Driver driver = findDriverByUserId(userId);
 
         driver.setStatus(DriverStatus.CONNECTED);
@@ -126,18 +126,18 @@ public class DriverService {
         logger.info("📡 Estado del conductor actualizado: {}", driver);
         handleDriverLocation(driver.getId(), DriverStatus.CONNECTED, request.getLatitude(), request.getLongitude());
 
+        return new DriverStatusResponse(driver.getId(), driver.getStatus());
     }
 
-    public void driverDisconnected(Long driverId, DriverStatusDisconnectedRequest request) {
-        Driver driver = findDriverByUserId(driverId);
+    public void driverDisconnected(Long userId, DriverStatusDisconnectedRequest request) {
+        Driver driver = findDriverByUserId(userId);
 
         driver.setStatus(DriverStatus.DISCONNECTED);
         driverRepository.save(driver);
 
-        handleDriverLocation(driverId, DriverStatus.DISCONNECTED, null, null);
+        handleDriverLocation(driver.getId(), DriverStatus.DISCONNECTED, null, null);
 
-        logger.info("🔴 Conductor {} desconectado", driverId);
-
+        logger.info("🔴 Conductor {} desconectado", driver.getId());
     }
 
 
@@ -170,13 +170,14 @@ public class DriverService {
 
     }
 
-    public void updateDriverLocation(DriverUpdateLocationRequest driverUpdateLocationRequest, Long driverId) {
+    public void updateDriverLocation(DriverUpdateLocationRequest driverUpdateLocationRequest, Long userId) {
+        Driver driver = findDriverByUserId(userId);
         Double latitude = driverUpdateLocationRequest.getLatitude();
         Double longitude = driverUpdateLocationRequest.getLongitude();
 
         if (latitude != null && longitude != null) {
-            hazelcastGeoService.updateDriverLocation(driverId, latitude, longitude);
-            logger.info("✅ Ubicación almacenada en Hazelcast para el conductor {} -> ({}, {})", driverId, latitude, longitude);
+            hazelcastGeoService.updateDriverLocation(driver.getId(), latitude, longitude);
+            logger.info("✅ Ubicación almacenada en Hazelcast para el conductor {} -> ({}, {})", driver.getId(), latitude, longitude);
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordenadas no proporcionadas para conductor conectado");
         }
