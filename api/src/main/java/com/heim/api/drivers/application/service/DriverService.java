@@ -136,12 +136,12 @@ public class DriverService {
         driverRepository.save(driver);
 
         handleDriverLocation(driver.getId(), DriverStatus.DISCONNECTED, null, null);
-
         logger.info("🔴 Conductor {} desconectado", driver.getId());
     }
 
 
     private Driver findDriverByUserId(Long userId) {
+        logger.info("🔍 Buscando driver con userId: {}", userId);
         return driverRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Driver not found"));
     }

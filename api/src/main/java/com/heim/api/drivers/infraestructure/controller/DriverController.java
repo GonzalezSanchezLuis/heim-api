@@ -120,10 +120,9 @@ public class DriverController {
 
     @PutMapping("{driverId}/disconnected")
     public ResponseEntity<Map<String, String>> disconnectedStatus(@PathVariable Long driverId,
-                                                                  @Valid  @RequestBody DriverStatusDisconnectedRequest request) {
+                                                                  @Valid @RequestBody DriverStatusDisconnectedRequest request) {
+        logger.info("🔴 Disconnect request - pathVar driverId: {}, body driverId: {}", driverId, request.getDriverId());
         driverService.driverDisconnected(driverId, request);
-        logger.info("🔴 Conductor {} desconectado", driverId);
-
         return ResponseEntity.ok(buildResponse(SUCCESS, DISCONNECTED_SUCCESS));
     }
 
