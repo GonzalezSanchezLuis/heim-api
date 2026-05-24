@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<module external.linked.project.id=":notification" external.linked.project.path="$MODULE_DIR$/../../../api/notification" external.root.project.path="$MODULE_DIR$/../../../api" external.system.id="GRADLE" external.system.module.group="api" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
-  <component name="AdditionalModuleElements">
-    <content url="file://$MODULE_DIR$/../../../api/notification" dumb="true">
-      <excludeFolder url="file://$MODULE_DIR$/../../../api/notification/.gradle" />
-      <excludeFolder url="file://$MODULE_DIR$/../../../api/notification/build" />
-    </content>
-  </component>
-</module>
