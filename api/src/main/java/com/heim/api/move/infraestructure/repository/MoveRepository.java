@@ -33,6 +33,12 @@ public interface MoveRepository extends CrudRepository<Move, Long> {
             @Param("statuses") List<MoveStatus> statuses
     );
 
+    @Query("SELECT m FROM Move m WHERE m.driver.id = :driverId AND m.status IN :statuses ORDER BY m.requestTime DESC LIMIT 1")
+    Optional<Move> findActiveByDriverId(
+            @Param("driverId") Long driverId,
+            @Param("statuses") List<MoveStatus> statuses
+    );
+
 
 }
 

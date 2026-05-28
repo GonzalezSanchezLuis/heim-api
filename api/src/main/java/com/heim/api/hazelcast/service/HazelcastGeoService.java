@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class HazelcastGeoService {
-    private static final double EARTH_RADIUS_KM = 6371; // Radio de la Tierra en km
+    private static final double EARTH_RADIUS_KM = 6371;
     private final IMap<Long, GeoLocation> driverLocations;
     public DriverRepository driverRepository;
 
@@ -52,9 +52,9 @@ public class HazelcastGeoService {
 
     public List<Long> findNearbyDriversDynamically(double latitude, double longitude) {
         log.info("📌 Conductores registrados en Hazelcast: {}", driverLocations.size());
-        double radiusKm = 0.01; // Radio inicial de búsqueda
+        double radiusKm = 0.01;
         log.info("📡 Buscando conductores desde {} km", radiusKm);
-        int minDrivers = 3; // Mínimo de conductores a encontrar
+        int minDrivers = 3;
         double maxRadius = 8.0; // Radio máximo permitido
         List<Long> drivers = findNearbyDrivers(latitude, longitude, radiusKm);
 

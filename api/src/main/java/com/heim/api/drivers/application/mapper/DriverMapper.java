@@ -24,6 +24,6 @@ public interface DriverMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "trips", ignore = true)
-   // @Mapping(target = "active", ignore = true)
+        // @Mapping(target = "active", ignore = true)
     Driver toEntity(DriverRequest driverRequest);
 }

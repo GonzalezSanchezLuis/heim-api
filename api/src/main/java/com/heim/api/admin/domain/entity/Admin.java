@@ -1,6 +1,5 @@
 package com.heim.api.admin.domain.entity;
 
-import com.google.type.DateTime;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,6 +7,7 @@ import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -21,6 +21,6 @@ public class Admin {
     private String email;
     private String password;
     private String role;
-    private DateTime creationDate;
+    private LocalDateTime creationDate;
     private boolean isActive = false;
 }

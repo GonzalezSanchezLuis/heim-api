@@ -15,9 +15,8 @@ public class WebSocketUserChannelService {
         this.messagingTemplate = messagingTemplate;
     }
 
-    public void notifyUser(Map<String, Object> moveNotificationUserResponse, Long userId){
+    public void notifyUser(Object payload, Long userId){
         String destination = "/topic/user/" + userId;
-        System.out.println("Enviando notificación al canal: " + destination);
-        messagingTemplate.convertAndSend(destination, moveNotificationUserResponse);
+        messagingTemplate.convertAndSend(destination, payload);
     }
 }

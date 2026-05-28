@@ -7,10 +7,16 @@ import com.heim.api.drivers.domain.enums.DriverStatus;
 import com.heim.api.drivers.infraestructure.repository.DriverRepository;
 import com.heim.api.fcm.domain.entity.FcmToken;
 import com.heim.api.fcm.infraestructure.repository.FcmTokenRepository;
+import com.heim.api.hazelcast.application.dto.GeoLocation;
 import com.heim.api.hazelcast.service.HazelcastGeoService;
+import com.heim.api.move.application.dto.MoveNotificationUserResponse;
+import com.heim.api.move.domain.enums.MoveStatus;
+import com.heim.api.move.infraestructure.repository.MoveRepository;
 import com.heim.api.notification.application.service.EmailNotificationService;
 import com.heim.api.users.domain.entity.User;
 import com.heim.api.users.infraestructure.repository.UserRepository;
+import com.heim.api.webSocket.infraestructure.listener.MoveNotificationUserFactory;
+import com.heim.api.webSocket.service.WebSocketUserChannelService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.crossstore.ChangeSetPersister;
@@ -19,6 +25,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -31,23 +40,30 @@ public class DriverService {
     private final UserRepository userRepository;
     private final FcmTokenRepository fcmTokenRepository;
     private final EmailNotificationService emailNotificationService;
+    private final MoveRepository moveRepository;
+    private final WebSocketUserChannelService webSocketUserChannelService;
+    private final MoveNotificationUserFactory moveNotificationUserFactory;
 
     @Autowired
     public DriverService(
             DriverRepository driverRepository,
             DriverMapper driverMapper,
             HazelcastGeoService hazelcastGeoService,
-            UserRepository  userRepository,
+            UserRepository userRepository,
             FcmTokenRepository fcmTokenRepository,
-            EmailNotificationService emailNotificationService
-            ){
+            EmailNotificationService emailNotificationService,
+            MoveRepository moveRepository,
+            WebSocketUserChannelService webSocketUserChannelService,
+            MoveNotificationUserFactory moveNotificationUserFactory) {
         this.driverMapper = driverMapper;
         this.hazelcastGeoService = hazelcastGeoService;
         this.userRepository = userRepository;
-        this.driverRepository= driverRepository;
-        this.fcmTokenRepository =  fcmTokenRepository;
-        this.emailNotificationService =  emailNotificationService;
-
+        this.driverRepository = driverRepository;
+        this.fcmTokenRepository = fcmTokenRepository;
+        this.emailNotificationService = emailNotificationService;
+        this.moveRepository = moveRepository;
+        this.webSocketUserChannelService = webSocketUserChannelService;
+        this.moveNotificationUserFactory = moveNotificationUserFactory;
     }
 
     @Transactional
@@ -175,12 +191,29 @@ public class DriverService {
         Double latitude = driverUpdateLocationRequest.getLatitude();
         Double longitude = driverUpdateLocationRequest.getLongitude();
 
-        if (latitude != null && longitude != null) {
-            hazelcastGeoService.updateDriverLocation(driver.getId(), latitude, longitude);
-            logger.info("✅ Ubicación almacenada en Hazelcast para el conductor {} -> ({}, {})", driver.getId(), latitude, longitude);
-        } else {
+        if (latitude == null || longitude == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordenadas no proporcionadas para conductor conectado");
         }
+
+        hazelcastGeoService.updateDriverLocation(driver.getId(), latitude, longitude);
+        logger.info("✅ Ubicación almacenada en Hazelcast para el conductor {} -> ({}, {})", driver.getId(), latitude, longitude);
+
+        moveRepository.findActiveByDriverId(
+                driver.getId(),
+                List.of(MoveStatus.ASSIGNED, MoveStatus.MOVING_STARTED)
+        ).ifPresent(move -> {
+            Long userIdToNotify = move.getUser().getUserId();
+            GeoLocation location = hazelcastGeoService.getDriverLocation(driver.getId());
+            MoveNotificationUserResponse payload = moveNotificationUserFactory.build(move);
+            if (location != null) {
+                payload.setDriverLat(location.getLatitude());
+                payload.setDriverLng(location.getLongitude());
+            }
+            Map<String, Object> message = new HashMap<>();
+            message.put("move", payload);
+            webSocketUserChannelService.notifyUser(message, userIdToNotify);
+            logger.info("📍 Coordenadas enviadas al usuario {} por WebSocket -> {}", userIdToNotify, message);
+        });
     }
 
 
