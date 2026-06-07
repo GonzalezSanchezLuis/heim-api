@@ -82,7 +82,7 @@ public class DriverService {
            user.setDocument(driverRequest.getDocument());
            user.setPhone(driverRequest.getPhone());
            user.setRole("DRIVER");
-           user.setActive(false);
+           user.setActive(true);
 
            userRepository.save(user);
 
