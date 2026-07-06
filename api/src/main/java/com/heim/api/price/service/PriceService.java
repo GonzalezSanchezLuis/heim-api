@@ -131,17 +131,17 @@ public class PriceService {
 
         switch (moveType) {
             case XPRESS:
-                rateBase = 25000;
+                rateBase = 20000;
                 costByKm = 1800;
                 costByMin = 300;
                 break;
             case MEDIANA:
-                rateBase = 50000;
+                rateBase = 45000;
                 costByKm = 3200;
                 costByMin = 500;
                 break;
             case GRANDE:
-                rateBase = 90000;
+                rateBase = 80000;
                 costByKm = 4000;
                 costByMin = 800;
                 break;
