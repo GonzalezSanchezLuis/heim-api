@@ -39,32 +39,11 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain (HttpSecurity http) throws Exception{
-        http .csrf(AbstractHttpConfigurer::disable) // Importante para que Postman funcione
+        http .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // Permite todo temporalmente para probar Resend
+                        .anyRequest().permitAll()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-               /* .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/v1/auth/auth",
-                                "/api/v1/users/register",
-                                "/api/v1/auth/logout",
-                                "/ws/**",
-                                "/api/v1/**").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/swagger-ui.html",
-                                "/webjars/**",
-                                "/v2/api-docs/**").permitAll()
-                        .anyRequest().authenticated()).exceptionHandling(
-                                customizer ->
-                                        customizer.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-
-                .sessionManagement(sess-> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); */
         return http.build();
 
     }

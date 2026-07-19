@@ -14,11 +14,12 @@ public class UserResponse {
     private String fullName;
     private String email;
     private String phone;
-    private String  document;
-    private String  urlAvatarProfile;
+    private String document;
+    private String urlAvatarProfile;
     private String role;
     private String createdAt;
     private boolean active;
+    private String token;
 
 
     public UserResponse(

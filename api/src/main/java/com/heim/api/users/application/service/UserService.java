@@ -13,6 +13,7 @@ import com.heim.api.users.application.dto.UserResponse;
 import com.heim.api.users.application.mapper.UserMapper;
 import com.heim.api.users.domain.entity.User;
 import com.heim.api.users.infraestructure.exceptions.EmailAlreadyRegisteredException;
+import com.heim.api.users.infraestructure.jwt.JwtUtils;
 import com.heim.api.users.infraestructure.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -31,19 +32,21 @@ public class UserService {
     private final BCryptPasswordEncoder bcryptPasswordEncoder;
     private final EmailNotificationService emailNotificationService;
     private final FcmTokenRepository fcmTokenRepository;
+    private final JwtUtils jwtUtils;
 
     @Autowired
     public UserService(UserRepository userRepository, UserMapper userMapper,
                        BCryptPasswordEncoder bcryptPasswordEncoder,
                        FcmTokenService fcmTokenService,
                        EmailNotificationService emailNotificationService,
-                       FcmTokenRepository fcmTokenRepository
-                       ) {
+                       FcmTokenRepository fcmTokenRepository,
+                       JwtUtils jwtUtils) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.bcryptPasswordEncoder = bcryptPasswordEncoder;
-        this.emailNotificationService =  emailNotificationService;
+        this.emailNotificationService = emailNotificationService;
         this.fcmTokenRepository = fcmTokenRepository;
+        this.jwtUtils = jwtUtils;
     }
 
 
@@ -76,7 +79,11 @@ public class UserService {
             System.err.println("Error enviando email: " + e.getMessage());
         }
 
-        return userMapper.toResponse(savedUser);
+        UserResponse response = userMapper.toResponse(savedUser);
+        response.setToken(jwtUtils.generateToken(savedUser.getEmail()));
+        logger.info("🔑 Token generado para nuevo usuario: {}", savedUser.getEmail());
+        logger.info("📤 Retornando respuesta: {}", response);
+        return response;
     }
 
     public UserResponse getUserById(Long userId) throws NoSuchElementException {

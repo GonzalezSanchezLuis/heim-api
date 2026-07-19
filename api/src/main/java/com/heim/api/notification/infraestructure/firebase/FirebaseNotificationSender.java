@@ -15,10 +15,13 @@ import java.util.Map;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class FirebaseNotificationSender {
 
     private final FcmTokenRepository fcmTokenRepository;
+
+    public FirebaseNotificationSender(FcmTokenRepository fcmTokenRepository) {
+        this.fcmTokenRepository = fcmTokenRepository;
+    }
 
     @Async
     public void sendNotifications(List<String> tokens, String title, String body, Map<String, String> data, String message) {

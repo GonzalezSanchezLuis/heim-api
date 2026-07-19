@@ -3,22 +3,28 @@ package com.heim.api.users.infraestructure.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import io.jsonwebtoken.security.Keys;
-
 
 @Component
 public class JwtUtils {
 
-    private static final Key key =  Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    @Value("${jwt.secret}")
+    private String secret;
 
-    public String  extractUserEmail(String token) {
+    private Key getKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes());
+    }
+
+    public String extractUserEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -27,32 +33,29 @@ public class JwtUtils {
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+        return claimsResolver.apply(extractAllClaims(token));
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser().setSigningKey(key).build().parseSignedClaims(token).getBody();
+        return Jwts.parser().setSigningKey(getKey()).build().parseSignedClaims(token).getBody();
     }
 
     private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+        return false;
     }
 
-    public String generateToken(String userDetails) {
+    public String generateToken(String email) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, userDetails);
-    }
-
-    private String createToken(Map<String, Object> claims, String subject) {
-        return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
-                .signWith(SignatureAlgorithm.HS256, key).compact();
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(email)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .signWith(SignatureAlgorithm.HS256, getKey())
+                .compact();
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {
-        final String userEmail = extractUserEmail(token);
-        return (userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        final String email = extractUserEmail(token);
+        return email.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
-
 }

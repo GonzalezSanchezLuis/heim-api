@@ -37,6 +37,8 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } catch (Exception e){
             Map<String, String> errorResponse = new HashMap<>();
+            System.err.println("❌ Error en registerUser: " + e.getMessage());
+            e.printStackTrace();
             errorResponse.put("message", "Ocurrió un error inesperado. Nuestros desarrolladores ya fueron informados.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }

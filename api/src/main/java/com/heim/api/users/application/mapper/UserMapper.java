@@ -13,6 +13,7 @@ public interface UserMapper {
 
     @Mapping(target = "userId", source = "user.userId")
     @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "token", ignore = true)
     UserResponse toResponse(User user);
 
     @Mapping(target = "userId", ignore = true)
