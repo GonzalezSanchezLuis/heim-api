@@ -35,8 +35,8 @@ public class EmailNotificationService {
 
     @Async
     public void sendWelcomeEmail(String toEmail, String name) {
-        String html = WelcomeEmailTemplate.build(name, frontend, BRAND_COLOR);
-        emailSender.send(toEmail, "¡Bienvenido a Heim!", html,fromOnboarding);
+        String html = WelcomeEmailTemplate.build(name);
+        emailSender.send(toEmail, "¡Bienvenido a Heim!", html, fromOnboarding);
     }
 
     @Async
