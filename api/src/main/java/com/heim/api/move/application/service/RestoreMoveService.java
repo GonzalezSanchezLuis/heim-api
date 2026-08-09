@@ -4,6 +4,8 @@ import com.heim.api.move.application.dto.RestoreMoveResponseDTO;
 import com.heim.api.move.application.mapper.ActiveMoveMapper;
 import com.heim.api.move.domain.enums.MoveStatus;
 import com.heim.api.move.infraestructure.repository.MoveRepository;
+import com.heim.api.hazelcast.application.dto.GeoLocation;
+import com.heim.api.hazelcast.service.HazelcastGeoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -14,11 +16,13 @@ public class RestoreMoveService {
 
     private final MoveRepository moveRepository;
     private final ActiveMoveMapper activeMoveMapper;
+    private final HazelcastGeoService hazelcastGeoService;
 
     @Autowired
-    public RestoreMoveService(MoveRepository moveRepository, ActiveMoveMapper activeMoveMapper) {
+    public RestoreMoveService(MoveRepository moveRepository, ActiveMoveMapper activeMoveMapper, HazelcastGeoService hazelcastGeoService) {
         this.moveRepository = moveRepository;
         this.activeMoveMapper = activeMoveMapper;
+        this.hazelcastGeoService = hazelcastGeoService;
     }
 
     public Optional<RestoreMoveResponseDTO> getActiveMoveForDriver(Long driverId, Long moveId) {
@@ -30,12 +34,18 @@ public class RestoreMoveService {
 
             return moveRepository
                     .findActiveMoveByDriverIdAndMoveId(moveId, driverId, activeStatuses)
-                    .map(activeMoveMapper::toDTO);
+                    .map(move -> {
+                        RestoreMoveResponseDTO dto = activeMoveMapper.toDTO(move);
+                        GeoLocation location = hazelcastGeoService.getDriverLocation(driverId);
+                        if (location != null) {
+                            dto.setDriverLat(location.getLatitude());
+                            dto.setDriverLng(location.getLongitude());
+                        }
+                        return dto;
+                    });
         } catch (Exception e) {
             System.err.println("❌ Error al obtener la mudanza activa para driverId " + driverId + " y moveId " + moveId + ": " + e.getMessage());
             return Optional.empty();
         }
     }
 }
-
-

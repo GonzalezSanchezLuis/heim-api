@@ -38,4 +38,6 @@ public class MoveDTO {
     private String vehicleType;
     private Long driverId;
     private Long userId;
+    private String addressee;
+    private String recipientPhoneNumber;
 }

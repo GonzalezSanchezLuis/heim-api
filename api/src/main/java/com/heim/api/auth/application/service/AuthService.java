@@ -13,6 +13,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -47,6 +48,8 @@ public class AuthService {
 
             UserResponse response = userMapper.toResponse(user);
             String token = jwtUtils.generateToken(user.getEmail());
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
             log.info("🔑 Token generado para {}: {}", user.getEmail(), token);
             response.setToken(token);
             return response;

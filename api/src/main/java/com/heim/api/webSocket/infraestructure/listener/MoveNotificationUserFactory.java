@@ -33,9 +33,15 @@ public class MoveNotificationUserFactory {
                 .vehicleType(move.getDriver().getVehicleType())
                 .moveId(move.getMoveId())
                 .origin(move.getOrigin())
+                .originLat(String.valueOf(move.getOriginLat()))
+                .originLng(String.valueOf(move.getOriginLng()))
+                .destinationLat(move.getDestinationLat())
+                .destinationLng(move.getDestinationLng())
                 .destination(move.getDestination())
                 .accountNumber(accountNumber)
                 .amount(move.getPrice() != null ? move.getPrice().toPlainString() : "")
+                .addressee(move.getAddressee())
+                .recipientPhoneNumber(move.getRecipientPhoneNumber())
                 .build();
     }
 }

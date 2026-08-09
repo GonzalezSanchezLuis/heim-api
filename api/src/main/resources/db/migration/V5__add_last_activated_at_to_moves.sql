@@ -1,0 +1,1 @@
+ALTER TABLE moves ADD COLUMN IF NOT EXISTS last_activated_at TIMESTAMP;

@@ -15,7 +15,14 @@ public interface MoveRepository extends CrudRepository<Move, Long> {
     Optional<Move> findByMoveIdAndDriver_Id(@Param("moveId") Long moveId, @Param("driverId") Long driverId);
     List<Move> findByDriverIdAndStatus(Long driverId, MoveStatus status);
     List<Move> findByUser_UserIdAndStatus(Long userId, MoveStatus status);
-    Optional<Move> findByUser_UserIdAndOriginAndDestinationAndStatus(Long userId, String origin, String destination, MoveStatus status);
+    List<Move> findByUser_UserIdAndStatusIn(Long userId, List<MoveStatus> statuses);
+    @Query("SELECT m FROM Move m WHERE m.user.userId = :userId AND m.origin = :origin AND m.destination = :destination AND m.status = :status ORDER BY m.requestTime DESC LIMIT 1")
+    Optional<Move> findByUser_UserIdAndOriginAndDestinationAndStatus(
+            @Param("userId") Long userId,
+            @Param("origin") String origin,
+            @Param("destination") String destination,
+            @Param("status") MoveStatus status
+    );
     Optional<Move> findById(Long moveId);
 
 
@@ -31,6 +38,14 @@ public interface MoveRepository extends CrudRepository<Move, Long> {
             @Param("moveId") Long moveId,
             @Param("driverId") Long driverId,
             @Param("statuses") List<MoveStatus> statuses
+    );
+
+    @Query("SELECT m FROM Move m WHERE m.scheduledTime IS NOT NULL AND m.status IN (:statuses) AND m.scheduledTime <= :now AND m.retryCount < :maxRetries AND (m.lastActivatedAt IS NULL OR m.lastActivatedAt <= :cooldown)")
+    List<Move> findScheduledMovesReady(
+            @Param("statuses") List<MoveStatus> statuses,
+            @Param("now") java.time.LocalDateTime now,
+            @Param("maxRetries") int maxRetries,
+            @Param("cooldown") java.time.LocalDateTime cooldown
     );
 
     @Query("SELECT m FROM Move m WHERE m.driver.id = :driverId AND m.status IN :statuses ORDER BY m.requestTime DESC LIMIT 1")

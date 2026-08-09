@@ -15,4 +15,5 @@ public class MovingHistoryDTO {
     private String name;
     private String avatar;
     private String status;
+    private java.time.LocalDateTime scheduledTime;
 }

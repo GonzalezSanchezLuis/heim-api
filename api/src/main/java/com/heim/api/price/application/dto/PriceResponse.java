@@ -14,8 +14,10 @@ public class PriceResponse {
     private final String formattedDistance;
     private final String formattedDuration;
     private final List<Map<String, Double>> route;
+    private final String addressee;
+    private final String recipientPhoneNumber;
 
-    public PriceResponse(BigDecimal price,double distanceKm, double timeMin, List<Map<String, Double>> route) {
+    public PriceResponse(BigDecimal price, double distanceKm, double timeMin, List<Map<String, Double>> route, String addressee, String recipientPhoneNumber) {
         this.price = price;
         NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("es", "CO"));
         nf.setMinimumFractionDigits(0);
@@ -26,7 +28,8 @@ public class PriceResponse {
         this.formattedDistance = String.format("%.1f km", distanceKm);
         this.formattedDuration = String.format("%.0f min", timeMin);
         this.route = route;
-
+        this.addressee = addressee;
+        this.recipientPhoneNumber = recipientPhoneNumber;
     }
 
     public BigDecimal getPrice() {
@@ -55,6 +58,14 @@ public class PriceResponse {
 
     public List<Map<String, Double>> getRoute() {
         return route;
+    }
+
+    public String getAddressee() {
+        return addressee;
+    }
+
+    public String getRecipientPhoneNumber() {
+        return recipientPhoneNumber;
     }
 }
 

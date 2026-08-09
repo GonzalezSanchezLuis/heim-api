@@ -35,13 +35,20 @@ public class Move {
     private BigDecimal price;
     private String paymentMethod;
 
+    private LocalDateTime scheduledTime;
     private LocalDateTime requestTime;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private LocalDateTime lastActivatedAt;
 
     private String distanceKm;
     private String durationMin;
     private String accessType;
+    private String addressee;
+    private String recipientPhoneNumber;
+
+    @Column(nullable = false, columnDefinition = "int default 0")
+    private int retryCount = 0;
 
     @Enumerated(EnumType.STRING)
     private MoveStatus status;

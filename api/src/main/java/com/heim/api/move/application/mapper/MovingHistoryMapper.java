@@ -17,6 +17,7 @@ public interface MovingHistoryMapper {
     @Mapping(source = "status", target = "status")
     @Mapping(source = "origin", target = "origin")
     @Mapping(source = "destination", target = "destination")
+    @Mapping(source = "scheduledTime", target = "scheduledTime")
     MovingHistoryDTO toDto(Move move);
 
     List<MovingHistoryDTO> toDtoList(List<Move> moves);

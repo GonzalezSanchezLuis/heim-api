@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -23,4 +24,7 @@ public class MoveRequest {
     private String estimatedTime;
     private String paymentMethod;
     private String accessType;
+    private LocalDateTime scheduledTime;
+    private String addressee;
+    private String recipientPhoneNumber;
 }

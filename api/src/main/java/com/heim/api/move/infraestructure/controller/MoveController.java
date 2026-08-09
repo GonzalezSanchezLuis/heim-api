@@ -112,6 +112,12 @@ public class MoveController {
         return ResponseEntity.ok(details);
     }
 
+    @PatchMapping("{moveId}/cancel")
+    public ResponseEntity<String> cancelMove(@PathVariable Long moveId, @RequestBody java.util.Map<String, Long> body) {
+        moveService.cancelMove(moveId, body.get("userId"));
+        return ResponseEntity.ok("Viaje cancelado exitosamente");
+    }
+
     @GetMapping("{moveId}/restore-move")
     public ResponseEntity<RestoreMoveResponseDTO> getActiveMove(
             @PathVariable Long moveId,

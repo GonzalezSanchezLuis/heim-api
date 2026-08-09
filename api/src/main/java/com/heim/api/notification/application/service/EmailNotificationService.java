@@ -3,11 +3,14 @@ package com.heim.api.notification.application.service;
 import com.heim.api.notification.application.service.email.EmailSender;
 import com.heim.api.notification.application.service.email.templates.AccountStatusTemplate;
 import com.heim.api.notification.application.service.email.templates.AuthEmailTemplate;
+import com.heim.api.notification.application.service.email.templates.CancelledMoveEmailTemplate;
+import com.heim.api.notification.application.service.email.templates.ScheduledMoveEmailTemplate;
 import com.heim.api.notification.application.service.email.templates.WelcomeEmailTemplate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -43,9 +46,19 @@ public class EmailNotificationService {
     public void sendAccountStatusEmail(String toEmail, String firstName, boolean isActive){
         String htmlContent = AccountStatusTemplate.build(firstName, isActive);
         String subject = isActive ? "¡Tu cuenta en Heim está activa!" : "Tu cuenta en Heim ha sido pausada";
-        emailSender.send(toEmail, subject, htmlContent,fromStatus);
-
+        emailSender.send(toEmail, subject, htmlContent, fromStatus);
     }
 
+    @Async
+    public void sendScheduledMoveEmail(String toEmail, String firstName, String origin, String destination, LocalDateTime scheduledTime) {
+        String html = ScheduledMoveEmailTemplate.build(firstName, origin, destination, scheduledTime);
+        emailSender.send(toEmail, "✅ Tu viaje ha sido programado", html, fromOnboarding);
+    }
+
+    @Async
+    public void sendCancelledMoveEmail(String toEmail, String firstName, String origin, String destination, LocalDateTime scheduledTime) {
+        String html = CancelledMoveEmailTemplate.build(firstName, origin, destination, scheduledTime);
+        emailSender.send(toEmail, "❌ Tu viaje programado ha sido cancelado", html, fromOnboarding);
+    }
 
 }

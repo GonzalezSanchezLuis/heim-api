@@ -6,7 +6,9 @@ import com.heim.api.drivers.application.dto.TimeAndDistanceOriginResponse;
 import com.heim.api.drivers.application.service.DistanceCalculatorService;
 import com.heim.api.drivers.domain.entity.Driver;
 import com.heim.api.drivers.infraestructure.repository.DriverRepository;
+import com.heim.api.exceptions.BusinessException;
 import com.heim.api.exceptions.NotFoundException;
+import com.heim.api.notification.application.service.EmailNotificationService;
 import com.heim.api.fcm.domain.entity.FcmToken;
 import com.heim.api.hazelcast.application.dto.GeoLocation;
 import com.heim.api.hazelcast.service.HazelcastGeoService;
@@ -73,6 +75,7 @@ public class MoveService {
     private final EarningService earningService;
     private final PaymentRepository paymentRepository;
     private final DriverPaymentAccountRepository driverPaymentAccountRepository;
+    private final EmailNotificationService emailNotificationService;
 
 
 
@@ -93,7 +96,8 @@ public class MoveService {
                        EarningRepository earningRepository,
                        EarningService earningService,
                        PaymentRepository paymentRepository,
-                       DriverPaymentAccountRepository driverPaymentAccountRepository
+                       DriverPaymentAccountRepository driverPaymentAccountRepository,
+                       EmailNotificationService emailNotificationService
                        ) {
 
         this.moveRepository = moveRepository;
@@ -112,6 +116,7 @@ public class MoveService {
         this.earningService = earningService;
         this.paymentRepository = paymentRepository;
         this.driverPaymentAccountRepository = driverPaymentAccountRepository;
+        this.emailNotificationService = emailNotificationService;
 
     }
 
@@ -122,8 +127,100 @@ public class MoveService {
     };
 
 
-    public MoveConfirmationResponse confirmMove(MoveRequest moveRequest){
+    private MoveConfirmationResponse scheduleMove(MoveRequest moveRequest) {
+        User user = userRepository.findById(moveRequest.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        BigDecimal price = moveRequest.getPrice().setScale(2, RoundingMode.HALF_UP);
+
+        Move move = new Move();
+        move.setUser(user);
+        move.setOrigin(moveRequest.getOrigin());
+        move.setDestination(moveRequest.getDestination());
+        move.setOriginLat(moveRequest.getOriginLat());
+        move.setOriginLng(moveRequest.getOriginLng());
+        move.setDestinationLat(moveRequest.getDestinationLat());
+        move.setDestinationLng(moveRequest.getDestinationLng());
+        move.setTypeOfMove(moveRequest.getTypeOfMove());
+        move.setPrice(price);
+        move.setPaymentMethod(moveRequest.getPaymentMethod());
+        move.setDistanceKm(moveRequest.getDistanceKm());
+        move.setDurationMin(moveRequest.getEstimatedTime());
+        move.setAccessType(moveRequest.getAccessType());
+        move.setScheduledTime(moveRequest.getScheduledTime());
+        move.setAddressee(moveRequest.getAddressee());
+        move.setRecipientPhoneNumber(moveRequest.getRecipientPhoneNumber());
+        move.setRequestTime(LocalDateTime.now());
+        move.setStatus(MoveStatus.SCHEDULED);
+        moveRepository.save(move);
+        log.info("✅ Viaje programado guardado para: {}", moveRequest.getScheduledTime());
+        emailNotificationService.sendScheduledMoveEmail(
+                user.getEmail(),
+                user.getFullName(),
+                moveRequest.getOrigin(),
+                moveRequest.getDestination(),
+                moveRequest.getScheduledTime()
+        );
+        return new MoveConfirmationResponse("Viaje programado para " + moveRequest.getScheduledTime());
+    }
+
+    private static final int MAX_RETRIES = 6;
+
+    public void activateScheduledMove(Move move) {
+        double latitude = move.getOriginLat();
+        double longitude = move.getOriginLng();
+
+        List<Long> nearbyDrivers = Optional.ofNullable(
+                hazelcastGeoService.findNearbyDriversDynamically(latitude, longitude)
+        ).orElse(Collections.emptyList());
+
+        if (!nearbyDrivers.isEmpty()) {
+            move.setStatus(MoveStatus.REQUESTED);
+            move.setLastActivatedAt(LocalDateTime.now());
+            moveRepository.save(move);
+            Map<String, String> data = buildLocationData(move);
+            notificationService.notify(FcmToken.OwnerType.USER, move.getUser().getUserId(),
+                    "🚚 Tu viaje está por comenzar",
+                    "Estamos buscando el conductor más cercano. Tu servicio programado inicia en 30 minutos.",
+                    data, null);
+            notifyDriversLimited(move, nearbyDrivers);
+            log.info("🚀 Viaje programado {} notificando {} conductores", move.getMoveId(), nearbyDrivers.size());
+        } else {
+            int retries = move.getRetryCount() + 1;
+            move.setRetryCount(retries);
+            move.setLastActivatedAt(LocalDateTime.now());
+
+            if (retries >= MAX_RETRIES) {
+                move.setStatus(MoveStatus.CANCELLED);
+                moveRepository.save(move);
+                log.warn("❌ Viaje {} cancelado automáticamente: sin conductores tras {} intentos", move.getMoveId(), retries);
+                Map<String, String> data = buildLocationData(move);
+                notificationService.notify(FcmToken.OwnerType.USER, move.getUser().getUserId(),
+                        " Hoy no pudimos encontrar un conductor para tu viaje.",
+                        "Te agradecemos tu paciencia mientras crecemos.",
+                        data, null);
+                emailNotificationService.sendCancelledMoveEmail(
+                        move.getUser().getEmail(),
+                        move.getUser().getFullName(),
+                        move.getOrigin(),
+                        move.getDestination(),
+                        move.getScheduledTime()
+                );
+            } else {
+                moveRepository.save(move);
+                log.warn("⚠️ Viaje {} sin conductores. Intento {}/{}", move.getMoveId(), retries, MAX_RETRIES);
+            }
+        }
+    }
+
+    public MoveConfirmationResponse confirmMove(MoveRequest moveRequest) {
         try {
+            log.info("📥 confirmMove recibido - userId: {}, scheduledTime: {}", moveRequest.getUserId(), moveRequest.getScheduledTime());
+            log.info("📥 addressee: {}, recipientPhoneNumber: {}", moveRequest.getAddressee(), moveRequest.getRecipientPhoneNumber());
+            if (moveRequest.getScheduledTime() != null) {
+                return scheduleMove(moveRequest);
+            }
+
             double latitude = moveRequest.getOriginLat();
             double longitude = moveRequest.getOriginLng();
 
@@ -204,6 +301,9 @@ public class MoveService {
         move.setDurationMin(moveRequest.getEstimatedTime());
         move.setRequestTime(LocalDateTime.now());
         move.setStatus(MoveStatus.REQUESTED);
+        move.setAccessType(moveRequest.getAccessType());
+        move.setAddressee(moveRequest.getAddressee());
+        move.setRecipientPhoneNumber(moveRequest.getRecipientPhoneNumber());
         log.info("MUDANZA QUE SE CONFIRMA DEL CLIENTE {}", move);
         move = moveRepository.save(move);
         return move;
@@ -398,7 +498,7 @@ public class MoveService {
 
             int attempts = tripCacheService.getNotificationCount(move.getMoveId(), driverId);
            // if (attempts < MAX_NOTIFICATION_ATTEMPTS){
-                String message = NOTIFICATION_MESSAGES[attempts];
+                String message = NOTIFICATION_MESSAGES[attempts % NOTIFICATION_MESSAGES.length];
                 log.info("Notificando conductor con ID: {}, USERID: {}", driverId, userId);
 
                 Map<String, String> moveData = buildMovingInformationDriver(
@@ -437,6 +537,7 @@ public class MoveService {
                     moveDTO.setDriverLng(driverLocation.getLongitude());
                 }
 
+
                 TimeAndDistanceOriginResponse originData = driverDistances.get(driverId);
                 if (originData != null) {
                     moveDTO.setEstimatedTimeOfArrival(originData.getEstimatedTimeOfArrival());
@@ -452,6 +553,18 @@ public class MoveService {
                // log.info("No se notificará más al conductor {} para el viaje {} para evitar spam.", driverId, move.getMoveId());
           //  }
         }
+    }
+
+    private Map<String, String> buildLocationData(Move move) {
+        Map<String, String> data = new HashMap<>();
+        data.put("moveId", String.valueOf(move.getMoveId()));
+        data.put("originLat", String.valueOf(move.getOriginLat()));
+        data.put("originLng", String.valueOf(move.getOriginLng()));
+        data.put("destinationLat", String.valueOf(move.getDestinationLat()));
+        data.put("destinationLng", String.valueOf(move.getDestinationLng()));
+        data.put("origin", move.getOrigin());
+        data.put("destination", move.getDestination());
+        return data;
     }
 
     private Map<String, String> buildMovingInformationDriver(
@@ -471,6 +584,8 @@ public class MoveService {
         moveData.put("typeOfMove", String.valueOf(move.getTypeOfMove().name()));
         moveData.put("price", move.getPrice().toPlainString());
         moveData.put("paymentMethod", String.valueOf(move.getPaymentMethod()));
+        moveData.put("addressee", move.getAddressee() != null ? move.getAddressee() : "");
+        moveData.put("recipientPhoneNumber", move.getRecipientPhoneNumber() != null ? move.getRecipientPhoneNumber() : "");
 
         log.info("DATOS DE LA DISTANCIA {}" , distanceResponse);
 
@@ -504,6 +619,10 @@ public class MoveService {
         data.put("moveId", move.getMoveId().toString());
         data.put("status", move.getStatus().toString());
         data.put("amount", move.getPrice().toString());
+        data.put("originLat", String.valueOf(move.getOriginLat()));
+        data.put("originLng", String.valueOf(move.getOriginLng()));
+        data.put("destinationLat", String.valueOf(move.getDestinationLat()));
+        data.put("destinationLng", String.valueOf(move.getDestinationLng()));
 
         if (move.getDriver() != null) {
             Driver driver = move.getDriver();
@@ -514,6 +633,7 @@ public class MoveService {
             data.put("driverName", user.getFullName());
             data.put("driverPhone", user.getPhone() != null ? user.getPhone() : "");
             data.put("driverImageUrl", user.getUrlAvatarProfile() != null ? user.getUrlAvatarProfile() : "");
+
 
 
             driverPaymentAccountRepository.findByDriverId(driver.getId()).ifPresent(account ->
@@ -531,7 +651,9 @@ public class MoveService {
     }
 
     public List<MovingHistoryDTO> getMovingHistoryByUserId(Long userId){
-        List<Move> moves = moveRepository.findByUser_UserIdAndStatus(userId, MoveStatus.MOVE_COMPLETE);
+        List<Move> moves = moveRepository.findByUser_UserIdAndStatusIn(
+                userId, List.of(MoveStatus.MOVE_COMPLETE, MoveStatus.SCHEDULED)
+        );
         return movingHistoryMapper.toDtoList(moves);
     }
 
@@ -586,4 +708,33 @@ public class MoveService {
         return moveRepository.findByMoveIdAndDriver_Id(moveId, driverId);
     }
 
+    @Transactional
+    public void cancelMove(Long moveId, Long userId) {
+        Move move = moveRepository.findById(moveId)
+                .orElseThrow(() -> new NotFoundException("Mudanza no encontrada"));
+
+        if (!move.getUser().getUserId().equals(userId)) {
+            throw new BusinessException("No tienes permiso para cancelar este viaje", "FORBIDDEN");
+        }
+
+        if (move.getStatus() != MoveStatus.SCHEDULED && move.getStatus() != MoveStatus.REQUESTED) {
+            throw new BusinessException("Solo se pueden cancelar viajes programados", "INVALID_STATUS");
+        }
+
+        if (move.getScheduledTime() == null) {
+            throw new BusinessException("Solo se pueden cancelar viajes programados", "INVALID_STATUS");
+        }
+
+        move.setStatus(MoveStatus.CANCELLED);
+        moveRepository.save(move);
+        log.info("❌ Viaje {} cancelado por el usuario {}", moveId, userId);
+        emailNotificationService.sendCancelledMoveEmail(
+                move.getUser().getEmail(),
+                move.getUser().getFullName(),
+                move.getOrigin(),
+                move.getDestination(),
+                move.getScheduledTime()
+        );
     }
+
+}

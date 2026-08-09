@@ -20,7 +20,13 @@ public class MoveNotificationUserResponse {
     private String amount;
     private Long moveId;
     private String origin;
+    private String originLat;
+    private String originLng;
     private String destination;
+    private Double destinationLat;
+    private Double destinationLng;
     private Double driverLat;
     private Double driverLng;
+    private String addressee;
+    private String recipientPhoneNumber;
 }

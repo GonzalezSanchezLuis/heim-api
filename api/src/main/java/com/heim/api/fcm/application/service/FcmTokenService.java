@@ -18,29 +18,6 @@ public class FcmTokenService {
     private final UserRepository userRepository;
     private final DriverRepository driverRepository;
 
-    /*public void registerToken(FcmTokenRequest request) {
-        boolean ownerExists = switch (request.getOwnerType()) {
-            case USER -> userRepository.existsById(request.getOwnerId());
-            case DRIVER -> driverRepository.existsById(request.getOwnerId());
-        };
-
-        if (!ownerExists) {
-            throw new IllegalArgumentException("El propietario no existe.");
-        }
-
-        FcmToken token = tokenRepository.findByToken(request.getToken())
-                .orElse(new FcmToken());
-
-
-        token.setToken(request.getToken());
-        token.setOwnerId(request.getOwnerId());
-        token.setOwnerType(request.getOwnerType());
-        System.out.println("DATOS DESDE EL CLIENTE" + request);
-
-        tokenRepository.save(token);
-        System.out.println("TOKEN GUARDADO");
-    } */
-
     @Transactional
     public void registerToken(FcmTokenRequest request) {
         // 1. VALIDACIÓN CORRECTA: Buscamos por user_id si es DRIVER

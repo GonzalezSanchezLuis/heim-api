@@ -27,6 +27,7 @@ public class User {
     private String urlAvatarProfile;
     private String role;
     private LocalDateTime createdAt;
+    private LocalDateTime lastLoginAt;
     private boolean isActive;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)

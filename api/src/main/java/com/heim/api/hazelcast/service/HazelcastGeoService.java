@@ -54,13 +54,12 @@ public class HazelcastGeoService {
         log.info("📌 Conductores registrados en Hazelcast: {}", driverLocations.size());
         double radiusKm = 0.01;
         log.info("📡 Buscando conductores desde {} km", radiusKm);
-        int minDrivers = 3;
-        double maxRadius = 8.0; // Radio máximo permitido
+        int minDrivers = 20;
+        double maxRadius = 30.0;
         List<Long> drivers = findNearbyDrivers(latitude, longitude, radiusKm);
 
-        // Aumentar el radio hasta encontrar suficientes conductores o alcanzar el máximo permitido
         while (drivers.size() < minDrivers && radiusKm < maxRadius) {
-            radiusKm += 5; // Incremento en pasos de 5 km
+            radiusKm += 5;
             drivers = findNearbyDrivers(latitude, longitude, radiusKm);
         }
         return drivers;
@@ -68,7 +67,7 @@ public class HazelcastGeoService {
 
 
     public List<Long> findNearbyDrivers(double latitude, double longitude, double radiusKm) {
-        // Primero obtener todos los conductores conectados en una sola consulta
+  
         Set<Long> connectedDrivers = new HashSet<>(driverRepository.findConnectedDriverIds());
 
 

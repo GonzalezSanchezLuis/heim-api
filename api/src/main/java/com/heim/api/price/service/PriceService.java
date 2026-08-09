@@ -115,7 +115,7 @@ public class PriceService {
             }
 
             System.out.println("PRECIO DE LA MUDANZA" + roundedPrice);
-            return new PriceResponse(roundedPrice, distanceKm, timeMin, route);
+            return new PriceResponse(roundedPrice, distanceKm, timeMin, route, priceRequest.getAddressee(), priceRequest.getRecipientPhoneNumber());
 
         } catch (Exception e) {
             System.out.println("Error al calcular el precio: " + e.getMessage());
