@@ -48,8 +48,9 @@ public class FirebaseNotificationSender {
                 log.info("✅ Notificación enviada. ID de mensaje: {}", response);
 
             } catch (FirebaseMessagingException e) {
-                if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
-                    log.warn("⚠️ Token FCM no registrado, eliminando de BD: {}", token);
+                if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED ||
+                    e.getMessagingErrorCode() == MessagingErrorCode.INVALID_ARGUMENT) {
+                    log.warn("⚠️ Token FCM inválido, eliminando de BD: {}", token);
                     fcmTokenRepository.findByToken(token).ifPresent(fcmTokenRepository::delete);
                 } else {
                     log.error("❌ Error al enviar notificación: {}", e.getMessage(), e);

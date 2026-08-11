@@ -31,11 +31,9 @@ public class FcmTokenService {
                     " no existe en la tabla de " + request.getOwnerType());
         }
 
-        FcmToken token = tokenRepository.findByToken(request.getToken())
+        FcmToken token = tokenRepository.findByOwnerIdAndOwnerType(request.getOwnerId(), request.getOwnerType())
                 .orElse(new FcmToken());
 
-        // 3. ACTUALIZACIÓN DE DATOS
-        // Si el token ya existía como USER, aquí se sobreescribe a DRIVER (o viceversa)
         token.setToken(request.getToken());
         token.setOwnerId(request.getOwnerId());
         token.setOwnerType(request.getOwnerType());

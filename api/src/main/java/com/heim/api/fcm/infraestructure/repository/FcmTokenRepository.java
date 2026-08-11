@@ -14,5 +14,6 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken, Long> {
    // List<FcmToken> findByOwnerTypeAndOwnerId(FcmToken.OwnerType ownerType, Long ownerId);
    List<FcmToken> findAllByOwnerIdAndOwnerType(Long ownerId, FcmToken.OwnerType ownerType);
     Optional<FcmToken> findByOwnerId(Long ownerId);
+    List<FcmToken> findAllByOwnerType(FcmToken.OwnerType ownerType);
 
 }
