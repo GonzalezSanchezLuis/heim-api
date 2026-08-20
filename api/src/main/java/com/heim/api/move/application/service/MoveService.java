@@ -76,6 +76,7 @@ public class MoveService {
     private final PaymentRepository paymentRepository;
     private final DriverPaymentAccountRepository driverPaymentAccountRepository;
     private final EmailNotificationService emailNotificationService;
+    private final ScheduledMoveRegistry scheduledMoveRegistry;
 
 
 
@@ -97,7 +98,8 @@ public class MoveService {
                        EarningService earningService,
                        PaymentRepository paymentRepository,
                        DriverPaymentAccountRepository driverPaymentAccountRepository,
-                       EmailNotificationService emailNotificationService
+                       EmailNotificationService emailNotificationService,
+                       ScheduledMoveRegistry scheduledMoveRegistry
                        ) {
 
         this.moveRepository = moveRepository;
@@ -117,6 +119,7 @@ public class MoveService {
         this.paymentRepository = paymentRepository;
         this.driverPaymentAccountRepository = driverPaymentAccountRepository;
         this.emailNotificationService = emailNotificationService;
+        this.scheduledMoveRegistry = scheduledMoveRegistry;
 
     }
 
@@ -153,6 +156,7 @@ public class MoveService {
         move.setRequestTime(LocalDateTime.now());
         move.setStatus(MoveStatus.SCHEDULED);
         moveRepository.save(move);
+        scheduledMoveRegistry.register(move.getMoveId());
         log.info("✅ Viaje programado guardado para: {}", moveRequest.getScheduledTime());
         emailNotificationService.sendScheduledMoveEmail(
                 user.getEmail(),
@@ -193,6 +197,7 @@ public class MoveService {
             if (retries >= MAX_RETRIES) {
                 move.setStatus(MoveStatus.CANCELLED);
                 moveRepository.save(move);
+                scheduledMoveRegistry.unregister(move.getMoveId());
                 log.warn("❌ Viaje {} cancelado automáticamente: sin conductores tras {} intentos", move.getMoveId(), retries);
                 Map<String, String> data = buildLocationData(move);
                 notificationService.notify(FcmToken.OwnerType.USER, move.getUser().getUserId(),
@@ -727,6 +732,7 @@ public class MoveService {
 
         move.setStatus(MoveStatus.CANCELLED);
         moveRepository.save(move);
+        scheduledMoveRegistry.unregister(moveId);
         log.info("❌ Viaje {} cancelado por el usuario {}", moveId, userId);
         emailNotificationService.sendCancelledMoveEmail(
                 move.getUser().getEmail(),

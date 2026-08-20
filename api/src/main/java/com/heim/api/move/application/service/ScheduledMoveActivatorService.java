@@ -18,9 +18,12 @@ public class ScheduledMoveActivatorService {
 
     private final MoveRepository moveRepository;
     private final MoveService moveService;
+    private final ScheduledMoveRegistry scheduledMoveRegistry;
 
     @Scheduled(fixedRate = 60000)
     public void activateScheduledMoves() {
+        if (!scheduledMoveRegistry.hasPending()) return;
+
         LocalDateTime now = LocalDateTime.now();
         List<Move> readyMoves = moveRepository.findScheduledMovesReady(
                 List.of(MoveStatus.SCHEDULED, MoveStatus.REQUESTED), now.plusMinutes(30), 6, now.minusSeconds(50)
@@ -32,6 +35,9 @@ public class ScheduledMoveActivatorService {
         for (Move move : readyMoves) {
             try {
                 moveService.activateScheduledMove(move);
+                if (move.getStatus() == MoveStatus.CANCELLED) {
+                    scheduledMoveRegistry.unregister(move.getMoveId());
+                }
             } catch (Exception e) {
                 log.error("❌ Error al activar viaje programado {}: {}", move.getMoveId(), e.getMessage());
             }
