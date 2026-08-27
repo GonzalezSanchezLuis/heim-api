@@ -28,7 +28,7 @@ public class PaymentService {
     @Value("${wava.api.url}")
     private String wavaApiUrl;
 
-    @Value("${wava.merchant.key}")
+    @Value("${WAVA_MERCHANT_KEY}")
     private String merchantKey;
 
     private final OkHttpClient client = new OkHttpClient();
