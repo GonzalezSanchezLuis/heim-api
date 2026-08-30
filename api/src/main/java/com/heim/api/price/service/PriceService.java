@@ -29,10 +29,12 @@ public class PriceService {
     private String apikeyDirections;
 
     private final RestTemplate restTemplate;
+    private final MovePricingService movePricingService;
 
     @Autowired
-    public PriceService(@Lazy RestTemplate restTemplate) {
+    public PriceService(@Lazy RestTemplate restTemplate, MovePricingService movePricingService) {
         this.restTemplate = restTemplate;
+        this.movePricingService = movePricingService;
     }
 
     public PriceResponse calculatePrice(PriceRequest priceRequest) {
@@ -114,8 +116,12 @@ public class PriceService {
                 System.out.println("⚠️ No se encontraron 'routes' en la respuesta de Google Directions.");
             }
 
-            System.out.println("PRECIO DE LA MUDANZA" + roundedPrice);
-            return new PriceResponse(roundedPrice, distanceKm, timeMin, route, priceRequest.getAddressee(), priceRequest.getRecipientPhoneNumber());
+            boolean firstTrip = priceRequest.getUserId() != null && movePricingService.isFirstTrip(priceRequest.getUserId());
+            int discountPct = firstTrip ? movePricingService.getDiscountPercentage() : 0;
+            BigDecimal discountAmount = movePricingService.applyDiscount(roundedPrice, firstTrip);
+
+            log.info("PRECIO DE LA MUDANZA: {}, firstTrip: {}, descuento: {}, precio final: {}", roundedPrice, firstTrip, discountAmount, roundedPrice.subtract(discountAmount));
+            return new PriceResponse(roundedPrice, distanceKm, timeMin, route, priceRequest.getAddressee(), priceRequest.getRecipientPhoneNumber(), firstTrip, discountPct, discountAmount);
 
         } catch (Exception e) {
             System.out.println("Error al calcular el precio: " + e.getMessage());

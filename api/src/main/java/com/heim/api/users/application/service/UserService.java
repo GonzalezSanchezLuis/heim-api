@@ -81,7 +81,8 @@ public class UserService {
 
         UserResponse response = userMapper.toResponse(savedUser);
         response.setToken(jwtUtils.generateToken(savedUser.getEmail()));
-        logger.info("🔑 Token generado para nuevo usuario: {}", savedUser.getEmail());
+        response.setHasFirstTripDiscount(true);
+        logger.info("🎉 Nuevo usuario registrado [{}] - hasFirstTripDiscount: true", savedUser.getEmail());
         logger.info("📤 Retornando respuesta: {}", response);
         return response;
     }

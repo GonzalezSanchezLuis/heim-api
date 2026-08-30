@@ -54,6 +54,7 @@ public interface MoveRepository extends CrudRepository<Move, Long> {
             @Param("statuses") List<MoveStatus> statuses
     );
 
+    boolean existsByUser_UserIdAndStatus(Long userId, MoveStatus status);
 
 }
 

@@ -18,8 +18,9 @@ public class UserResponse {
     private String urlAvatarProfile;
     private String role;
     private String createdAt;
-    private boolean active;
+    private Boolean active;
     private String token;
+    private Boolean hasFirstTripDiscount;
 
 
     public UserResponse(
@@ -29,6 +30,9 @@ public class UserResponse {
             String role,
             String phone,
             String urlAvatarProfile,
+            boolean active,
+            String token,
+            boolean hasFirstTripDiscount,
             String document) {
     }
 
@@ -41,6 +45,8 @@ public class UserResponse {
                         String role,
                         String string,
                         boolean active,
+                        String token,
+                        boolean hasFirstTripDiscount,
                         Object o) {
     }
 }

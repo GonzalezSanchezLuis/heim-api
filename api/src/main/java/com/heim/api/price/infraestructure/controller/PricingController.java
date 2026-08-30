@@ -33,7 +33,8 @@ public class PricingController {
 
             PriceResponse response = priceService.calculatePrice(priceRequest);
 
-            logger.info("Cálculo finalizado. Monto: {}", response.getPrice());
+            logger.info("Cálculo finalizado. Base: {}, descuento: {}, final: {}",
+                    response.getBasePrice(), response.getDiscountAmount(), response.getFinalPrice());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

@@ -1,5 +1,6 @@
 package com.heim.api.auth.application.service;
 
+import com.heim.api.price.service.MovePricingService;
 import com.heim.api.exceptions.DatabaseUnavailableException;
 import com.heim.api.exceptions.IncorrectCredentialsException;
 import com.heim.api.users.application.dto.UserResponse;
@@ -23,13 +24,15 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final JwtUtils jwtUtils;
+    private final MovePricingService movePricingService;
 
     @Autowired
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper, JwtUtils jwtUtils) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper, JwtUtils jwtUtils, MovePricingService movePricingService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
         this.jwtUtils = jwtUtils;
+        this.movePricingService = movePricingService;
     }
 
     public UserResponse authenticate(String email, String password) {
@@ -52,6 +55,9 @@ public class AuthService {
             userRepository.save(user);
             log.info("🔑 Token generado para {}: {}", user.getEmail(), token);
             response.setToken(token);
+            boolean hasDiscount = movePricingService.isFirstTrip(user.getUserId());
+            response.setHasFirstTripDiscount(hasDiscount);
+            log.info("✅ Login usuario [{}] - hasFirstTripDiscount: {}", user.getEmail(), hasDiscount);
             return response;
 
         } catch (DataAccessException e) {

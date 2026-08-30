@@ -34,6 +34,7 @@ import com.heim.api.notification.application.service.NotificationService;
 import com.heim.api.move.domain.entity.Move;
 import com.heim.api.move.domain.enums.MoveStatus;
 import com.heim.api.move.infraestructure.repository.MoveRepository;
+import com.heim.api.price.service.MovePricingService;
 import com.heim.api.users.infraestructure.repository.UserRepository;
 import com.heim.api.webSocket.application.dto.MoveNotificationDTO;
 import com.heim.api.webSocket.domain.entity.event.MoveAssignedUserEvent;
@@ -77,6 +78,7 @@ public class MoveService {
     private final DriverPaymentAccountRepository driverPaymentAccountRepository;
     private final EmailNotificationService emailNotificationService;
     private final ScheduledMoveRegistry scheduledMoveRegistry;
+    private final MovePricingService movePricingService;
 
 
 
@@ -99,7 +101,8 @@ public class MoveService {
                        PaymentRepository paymentRepository,
                        DriverPaymentAccountRepository driverPaymentAccountRepository,
                        EmailNotificationService emailNotificationService,
-                       ScheduledMoveRegistry scheduledMoveRegistry
+                       ScheduledMoveRegistry scheduledMoveRegistry,
+                       MovePricingService movePricingService
                        ) {
 
         this.moveRepository = moveRepository;
@@ -120,7 +123,7 @@ public class MoveService {
         this.driverPaymentAccountRepository = driverPaymentAccountRepository;
         this.emailNotificationService = emailNotificationService;
         this.scheduledMoveRegistry = scheduledMoveRegistry;
-
+        this.movePricingService = movePricingService;
     }
 
     private static final String[] NOTIFICATION_MESSAGES = {
@@ -157,6 +160,8 @@ public class MoveService {
         move.setStatus(MoveStatus.SCHEDULED);
         moveRepository.save(move);
         scheduledMoveRegistry.register(move.getMoveId());
+        boolean firstTrip = movePricingService.isFirstTrip(user.getUserId());
+        movePricingService.savePricing(move, price, firstTrip);
         log.info("✅ Viaje programado guardado para: {}", moveRequest.getScheduledTime());
         emailNotificationService.sendScheduledMoveEmail(
                 user.getEmail(),
@@ -311,6 +316,8 @@ public class MoveService {
         move.setRecipientPhoneNumber(moveRequest.getRecipientPhoneNumber());
         log.info("MUDANZA QUE SE CONFIRMA DEL CLIENTE {}", move);
         move = moveRepository.save(move);
+        boolean firstTrip = movePricingService.isFirstTrip(user.getUserId());
+        movePricingService.savePricing(move, price, firstTrip);
         return move;
     }
 
